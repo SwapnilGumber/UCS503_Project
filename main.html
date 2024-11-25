@@ -1,0 +1,118 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Timetable Generator</title>
+    <!-- Add jsPDF library for PDF generation -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.2/jspdf.plugin.autotable.min.js"></script>
+    <link rel="stylesheet" href="main_style.css">
+</head>
+<body>
+    <div class="container">
+        <h1>Timetable Generator</h1>
+        <div class="selection-container">
+            <div class="selection-box">
+                <label for="course">Select Courses (Minimum 5):</label>
+                <select id="course" name="course" multiple>
+                    <!-- Course options will be dynamically added here -->
+                </select>
+                <button id="confirmCourses">Confirm Course Selection</button>
+            </div>
+        </div>
+        <div id="facultySelections" class="faculty-selections">
+            <!-- Faculty selections will be dynamically added here -->
+        </div>
+        <div id="error" class="error"></div>
+        <div class="button-container">
+            <button id="generateBtn" style="display: none;">Generate Timetable</button>
+            <button id="downloadPDF" class="download-btn" style="display: none;">Download as PDF</button>
+            <button id="downloadTXT" class="download-btn" style="display: none;">Download as Text</button>
+        </div>
+        <div id="Output"></div>
+    </div>
+    
+    <script type="module">
+        import { initializeTimetableGenerator } from './calculator.js';
+        
+        // Initialize the timetable generator
+        document.addEventListener('DOMContentLoaded', () => {
+            initializeTimetableGenerator();
+            setupDownloadButtons();
+        });
+
+        function setupDownloadButtons() {
+            // Show download buttons when timetable is generated
+            const generateBtn = document.getElementById('generateBtn');
+            const downloadPDFBtn = document.getElementById('downloadPDF');
+            const downloadTXTBtn = document.getElementById('downloadTXT');
+            
+            generateBtn.addEventListener('click', () => {
+                // Show download buttons after timetable is generated
+                setTimeout(() => {
+                    downloadPDFBtn.style.display = 'inline-block';
+                    downloadTXTBtn.style.display = 'inline-block';
+                }, 500);
+            });
+
+            // PDF Download Handler
+            downloadPDFBtn.addEventListener('click', () => {
+                const { jsPDF } = window.jspdf;
+                const doc = new jsPDF();
+                
+                // Add title
+                doc.setFontSize(16);
+                doc.text('Generated Timetable', 14, 15);
+                
+                // Get the timetable content
+                const timetable = document.querySelector('#Output table');
+                if (timetable) {
+                    doc.autoTable({ 
+                        html: timetable,
+                        startY: 25,
+                        styles: { fontSize: 8 },
+                        headStyles: { fillColor: [242, 242, 242], textColor: [0, 0, 0] },
+                        alternateRowStyles: { fillColor: [255, 255, 255] }
+                    });
+                    
+                    // Save the PDF
+                    doc.save('timetable.pdf');
+                }
+            });
+
+            // Text Download Handler
+            downloadTXTBtn.addEventListener('click', () => {
+                let textContent = 'GENERATED TIMETABLE\n\n';
+                const timetable = document.querySelector('#Output table');
+                
+                if (timetable) {
+                    // Get headers
+                    const headers = Array.from(timetable.querySelectorAll('th'))
+                        .map(th => th.textContent.trim());
+                    textContent += headers.join('\t') + '\n';
+                    
+                    // Get rows
+                    const rows = timetable.querySelectorAll('tr');
+                    rows.forEach(row => {
+                        if (!row.querySelector('th')) { // Skip header row
+                            const cells = Array.from(row.querySelectorAll('td'))
+                                .map(td => td.textContent.trim());
+                            textContent += cells.join('\t') + '\n';
+                        }
+                    });
+                    
+                    // Create and trigger download
+                    const blob = new Blob([textContent], { type: 'text/plain' });
+                    const url = window.URL.createObjectURL(blob);
+                    const a = document.createElement('a');
+                    a.href = url;
+                    a.download = 'timetable.txt';
+                    a.click();
+                    window.URL.revokeObjectURL(url);
+                }
+            });
+        }
+    </script>
+</body>
+</html>
